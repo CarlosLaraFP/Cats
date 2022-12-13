@@ -44,18 +44,32 @@ object Implicits {
 
   val persons: List[Person] = List(Person("Alice"), Person("Bob"))
 
+  // anonymous class instantiation
   implicit val personSerializer: JSONSerializer[Person] = new JSONSerializer[Person] {
     // use the triple quote so that we can also write the single quote character inside without needing to escape every single thing
     override def toJson(person: Person): String =
       s"""
-         |{"name" : "${person.name}"
+         |{"name" : "${person.name}"}
          |""".stripMargin
   }
 
   val personsJson: String = listToJson[Person](persons)
+  // implicit argument is used to PROVE THE EXISTENCE of a type
+
+  // implicit methods (if we want to avoid creating implicit trait instances for every distinct type, such as any case class of a single argument)
+  // all case classes extend the Product trait (this is how we make the method/class specifically applicable to case classes)
+  implicit def oneArgCaseClassSerializer[T <: Product]: JSONSerializer[T] = new JSONSerializer[T] {
+    override def toJson(value: T): String =
+      s"""
+         |"${value.productElementName(0)}" : "${value.productElement(0)}"
+         |""".stripMargin
+  }
+
+  case class Cat(name: String)
 
   def main(args: Array[String]): Unit = {
-
+    //
+    println(oneArgCaseClassSerializer[Cat].toJson(Cat("Tom")))
   }
 
 }
