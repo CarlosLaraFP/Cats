@@ -32,9 +32,12 @@ object CatsIntro {
   case class Car(model: String, price: Double)
   // Two cars === true if they have the same price
 
-  implicit object CarEq extends Eq[Car] {
-    //
-    override def eqv(x: Car, y: Car): Boolean = x.price == y.price
+  //implicit object CarEq extends Eq[Car] {
+  //  override def eqv(x: Car, y: Car): Boolean = x.price == y.price
+  //}
+  // Best practice (cleaner and more maintainable) using static factory method from Eq companion object
+  implicit val carEq: Eq[Car] = Eq.instance[Car] {
+    (car1, car2) => car1.price == car2.price
   }
 
 
@@ -45,6 +48,7 @@ object CatsIntro {
     println(notEqualComparison)
     println(listComparison)
     println(Car("Maserati", 100000.50) === Car("Aston Martin", 101000.90))
+    println(Car("Bentley", 300000.50) === Car("Rolls Royce", 300000.50))
   }
 
 }
