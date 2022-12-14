@@ -39,7 +39,9 @@ object Implicits {
   // specific type conversions must be defined as concrete implementations of the abstract method
   def listToJson[T](list: List[T])(implicit serializer: JSONSerializer[T]): String = {
     // returns the canonical representation of an array in JSON
-    list.map(serializer.toJson).mkString("[", ",", "]")
+    list
+      .map(serializer.toJson)
+      .mkString("[", ",", "]")
   }
 
   val persons: List[Person] = List(Person("Alice"), Person("Bob"))
@@ -61,15 +63,25 @@ object Implicits {
   implicit def oneArgCaseClassSerializer[T <: Product]: JSONSerializer[T] = new JSONSerializer[T] {
     override def toJson(value: T): String =
       s"""
-         |"${value.productElementName(0)}" : "${value.productElement(0)}"
-         |""".stripMargin
+         |{"${value.productElementName(0)}" : "${value.productElement(0)}"}
+         |"""
+        .stripMargin
+        .trim
   }
+  // implicit methods are used to prove the existence of a type
+  // do not use implicit methods for implicit conversions (use implicit class extension methods)
 
   case class Cat(name: String)
+
 
   def main(args: Array[String]): Unit = {
     //
     println(oneArgCaseClassSerializer[Cat].toJson(Cat("Tom")))
+    println(oneArgCaseClassSerializer[Person].toJson(Person("Charles")))
+
+    // Compiler: creates implicit val oneArgCaseClassSerializer[Cat] and injects it into the method
+    val catsToJson: String = listToJson[Cat](List(Cat("Tom"), Cat("Garfield")))
+    println(catsToJson)
   }
 
 }
