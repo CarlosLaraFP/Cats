@@ -53,6 +53,8 @@ object TypeClassVariance {
   // RULE: we cannot have both => this is why Cats uses invariant type classes
   val validComparison: Boolean = Option(2) === Option.empty[Int]
 
+  // TAKEAWAY: Always use the general type with smart constructors
+
 
   // We choose object (vs class) when we need a main method (entry point)
   def main(args: Array[String]): Unit = {
