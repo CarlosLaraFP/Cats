@@ -21,7 +21,7 @@ object Semigroups {
   // type-specific APIs do not require Semigroups (i.e. the canonical list.reduce(_ + _))
 
   // generic (polymorphic) API
-  def reduceSequence[T](list: List[T])(implicit semigroup: Semigroup[T]): T = list.reduce(semigroup.combine)
+  def reduceSequence[T](list: Seq[T])(implicit semigroup: Semigroup[T]): T = list.reduce(semigroup.combine)
   // the power of the Semigroup is the ability to define very general combination (reduction) APIs regardless of types, given the presence of implicit Semigroups
 
   // the implicit type class instances that Cats provides will contain some implementations of Semigroup
@@ -43,6 +43,8 @@ object Semigroups {
   // extension methods from Semigroup: |+|
   import cats.syntax.semigroup._
 
+  // short-hand syntax adds the (implicit semigroup: Semigroup[T]) automatically
+  def reduceSequenceAlt[T : Semigroup](list: Seq[T]): T = list.reduce(_ |+| _)
 
 
   def main(args: Array[String]): Unit = {
@@ -69,12 +71,15 @@ object Semigroups {
     println(reduceSequence(testOptions).getOrElse(-1)) // 7? Yes.
 
     // Test custom Semigroup[Expense] to verify combination
-    val expenses = List(Expense(1, 10.50), Expense(2, 11.99), Expense(3, 100.00))
+    val expenses = Vector(Expense(1, 10.50), Expense(2, 11.99), Expense(3, 100.00))
     println(reduceSequence(expenses)) // Expense(3, 122.49)
 
-    val intSum = 2 |+| 3
-    println(intSum)
+    println(2 |+| 3)
+    println("Scala " |+| "is awesome!")
+    println(expenses.reduce(_ |+| _)) // requires implicit Semigroup[Expense]
+    println(reduceSequenceAlt(expenses))
 
-    println(expenses.reduce(_ |+| _))
+    // TODO: Takeaway -> Semigroup can be used to combine Spark DataFrames, case classes, or any type not default-supported by Cats
+    // TODO: Use cases -> Data structures that are meant to be combined (big data, eventual consistency, distributed computing)
   }
 }
