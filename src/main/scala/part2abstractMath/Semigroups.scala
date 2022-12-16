@@ -24,8 +24,6 @@ object Semigroups {
   def reduceSequence[T](list: List[T])(implicit semigroup: Semigroup[T]): T = list.reduce(semigroup.combine)
   // the power of the Semigroup is the ability to define very general combination (reduction) APIs regardless of types, given the presence of implicit Semigroups
 
-  //import cats.syntax.semigroup._
-
   // the implicit type class instances that Cats provides will contain some implementations of Semigroup
   // where the combine method will do what your intuition says
 
@@ -42,7 +40,9 @@ object Semigroups {
     }
   }
 
-  // extension methods from Semigroup
+  // extension methods from Semigroup: |+|
+  import cats.syntax.semigroup._
+
 
 
   def main(args: Array[String]): Unit = {
@@ -71,5 +71,10 @@ object Semigroups {
     // Test custom Semigroup[Expense] to verify combination
     val expenses = List(Expense(1, 10.50), Expense(2, 11.99), Expense(3, 100.00))
     println(reduceSequence(expenses)) // Expense(3, 122.49)
+
+    val intSum = 2 |+| 3
+    println(intSum)
+
+    println(expenses.reduce(_ |+| _))
   }
 }
