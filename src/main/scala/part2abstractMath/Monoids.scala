@@ -26,6 +26,14 @@ object Monoids {
   val emptyString: String = Monoid[String].empty
   val combineString: String = Monoid[String].combine("I love ", "Scala")
 
+  import cats.instances.option._
+  val emptyOption: Option[Int] = Monoid[Option[Int]].empty // None, per intuition
+  val combinedOptions: Option[Int] = Monoid[Option[Int]].combine(Option(3), Option.empty[Int])
+
+  // extension methods for Monoids: |+|
+  //import cats.syntax.monoid._
+  def monoidFold[T](seq: Seq[T])(implicit monoid: Monoid[T]): T = seq.foldLeft(monoid.empty)((A, B) => monoid.combine(A, B))
+
   // How to combine case class instances using Monoid?
   final case class Dispatch(id: Int, revenue: Double)
 
@@ -42,10 +50,17 @@ object Monoids {
 
     println(sumLeft)
     println(sumRight)
+    // Monoid[Int]
     println(numbers.foldLeft(zero)(_ |+| _))
-
-    val dispatches = Vector(Dispatch(1, 13.99), Dispatch(2, 14.99), Dispatch(4, 15.99))
+    println(monoidFold(numbers))
+    // Monoid[Option[Int]]
+    val nullableInts = numbers.map(n => Option(n))
+    println(nullableInts.foldLeft(emptyOption)(_ |+| _))
+    println(monoidFold(nullableInts))
+    // Monoid[Dispatch]
+    val dispatches = List(Dispatch(4, 13.99), Dispatch(2, 14.99), Dispatch(1, 15.99))
     val foldedDispatches = dispatches.foldLeft(seedDispatch)(_ |+| _)
     println(foldedDispatches)
+    println(monoidFold(dispatches))
   }
 }
