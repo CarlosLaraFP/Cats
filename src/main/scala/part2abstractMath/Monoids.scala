@@ -38,16 +38,16 @@ object Monoids {
   //implicit val mapMonoid: Monoid[Map[String, Int]] = Monoid.instance[Map[String, Int]](emptyMap, _ ++ _)
   import cats.instances.map._
 
-  // TODO: shopping cart and online stores with Monoids
+  // shopping cart and online stores with Monoids
   case class ShoppingCart(items: List[String], total: Double)
 
   val emptyShoppingCart: ShoppingCart = ShoppingCart(List.empty[String], 0.0)
 
   implicit val shoppingMonoid: Monoid[ShoppingCart] = Monoid.instance[ShoppingCart](emptyShoppingCart, (cartA, cartB) => {
-    ShoppingCart(cartA.items ::: cartB.items, cartA.total + cartB.total)
+    ShoppingCart(cartA.items ++ cartB.items, cartA.total + cartB.total)
   })
 
-  def checkout(shoppingCarts: List[ShoppingCart]): ShoppingCart = monoidFold(shoppingCarts)
+  def checkout(shoppingCarts: Seq[ShoppingCart]): ShoppingCart = monoidFold(shoppingCarts)
 
   // How to combine case class instances using Monoid?
   final case class Dispatch(id: Int, revenue: Double)
@@ -78,13 +78,14 @@ object Monoids {
       Map("Charlie" -> 372, "Daniel" -> 889),
       Map("Rita" -> 123)
     )
-    // essentially a flatMap
+    // essentially an inner flatMap
     println(monoidFold(phoneBooks))
     //println(phoneBooks.flatMap()) // ???
-    val shoppingCarts: List[ShoppingCart] = List(
+    val shoppingCarts: Vector[ShoppingCart] = Vector(
       ShoppingCart(List("bookB", "shirt"), 16.22),
       ShoppingCart(List("bookA", "beanie"), 19.11),
-      ShoppingCart(List("grass", "treats"), 42.99)
+      ShoppingCart(List("grass", "treats"), 42.99),
+      ShoppingCart(List(), 0.0)
     )
     println(checkout(shoppingCarts))
     println(monoidFold(shoppingCarts))
