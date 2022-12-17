@@ -26,11 +26,26 @@ object Monoids {
   val emptyString: String = Monoid[String].empty
   val combineString: String = Monoid[String].combine("I love ", "Scala")
 
+  // How to combine case class instances using Monoid?
+  final case class Dispatch(id: Int, revenue: Double)
+
+  val seedDispatch: Dispatch = Dispatch(0, 0.0)
+
+  implicit val dispatchMonoid: Monoid[Dispatch] = Monoid.instance[Dispatch](seedDispatch, (dispatchA, dispatchB) => {
+    val mostRecentDispatch = math.max(dispatchA.id, dispatchB.id)
+    val totalRevenue = dispatchA.revenue + dispatchB.revenue
+    Dispatch(mostRecentDispatch, totalRevenue)
+  })
+
 
   def main(args: Array[String]): Unit = {
 
     println(sumLeft)
     println(sumRight)
+    println(numbers.foldLeft(zero)(_ |+| _))
 
+    val dispatches = Vector(Dispatch(1, 13.99), Dispatch(2, 14.99), Dispatch(4, 15.99))
+    val foldedDispatches = dispatches.foldLeft(seedDispatch)(_ |+| _)
+    println(foldedDispatches)
   }
 }
