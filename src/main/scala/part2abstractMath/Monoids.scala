@@ -4,7 +4,7 @@ object Monoids {
 
   import cats.Semigroup
   import cats.instances.int._
-  import cats.syntax.semigroup._ // import extension method |+|
+  import cats.syntax.monoid._ // import extension method |+|
 
   val numbers: List[Int] = (1 to 1000).toList
   // |+| is always associative (it always produces the same result regardless of order)
@@ -30,9 +30,24 @@ object Monoids {
   val emptyOption: Option[Int] = Monoid[Option[Int]].empty // None, per intuition
   val combinedOptions: Option[Int] = Monoid[Option[Int]].combine(Option(3), Option.empty[Int])
 
-  // extension methods for Monoids: |+|
-  //import cats.syntax.monoid._
-  def monoidFold[T](seq: Seq[T])(implicit monoid: Monoid[T]): T = seq.foldLeft(monoid.empty)((A, B) => monoid.combine(A, B))
+  // a benefit of this approach is abstracting the seed value parameter
+  def monoidFold[T](seq: Seq[T])(implicit monoid: Monoid[T]): T = seq.foldLeft(monoid.empty)(_ |+| _)
+
+  // I'd think this is too universal that Cats would provide it
+  //val emptyMap: Map[String, Int] = Map.empty[String, Int]
+  //implicit val mapMonoid: Monoid[Map[String, Int]] = Monoid.instance[Map[String, Int]](emptyMap, _ ++ _)
+  import cats.instances.map._
+
+  // TODO: shopping cart and online stores with Monoids
+  case class ShoppingCart(items: List[String], total: Double)
+
+  val emptyShoppingCart: ShoppingCart = ShoppingCart(List.empty[String], 0.0)
+
+  implicit val shoppingMonoid: Monoid[ShoppingCart] = Monoid.instance[ShoppingCart](emptyShoppingCart, (cartA, cartB) => {
+    ShoppingCart(cartA.items ::: cartB.items, cartA.total + cartB.total)
+  })
+
+  def checkout(shoppingCarts: List[ShoppingCart]): ShoppingCart = monoidFold(shoppingCarts)
 
   // How to combine case class instances using Monoid?
   final case class Dispatch(id: Int, revenue: Double)
@@ -57,10 +72,30 @@ object Monoids {
     val nullableInts = numbers.map(n => Option(n))
     println(nullableInts.foldLeft(emptyOption)(_ |+| _))
     println(monoidFold(nullableInts))
+    // Monoid[Map[String, Int]]
+    val phoneBooks: List[Map[String, Int]] = List(
+      Map("Alice" -> 235, "Bob" -> 647),
+      Map("Charlie" -> 372, "Daniel" -> 889),
+      Map("Rita" -> 123)
+    )
+    // essentially a flatMap
+    println(monoidFold(phoneBooks))
+    //println(phoneBooks.flatMap()) // ???
+    val shoppingCarts: List[ShoppingCart] = List(
+      ShoppingCart(List("bookB", "shirt"), 16.22),
+      ShoppingCart(List("bookA", "beanie"), 19.11),
+      ShoppingCart(List("grass", "treats"), 42.99)
+    )
+    println(checkout(shoppingCarts))
+    println(monoidFold(shoppingCarts))
+
     // Monoid[Dispatch]
     val dispatches = List(Dispatch(4, 13.99), Dispatch(2, 14.99), Dispatch(1, 15.99))
     val foldedDispatches = dispatches.foldLeft(seedDispatch)(_ |+| _)
     println(foldedDispatches)
     println(monoidFold(dispatches))
+    // Monoid[Option[Dispatch]]
+    val nullableDispatches = dispatches.map(d => Option(d))
+    println(monoidFold(nullableDispatches))
   }
 }
