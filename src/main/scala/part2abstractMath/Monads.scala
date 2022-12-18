@@ -92,8 +92,9 @@ object Monads {
   trait MyMonad[M[_]] {
     // if M is a List and A is an Int, pure (wrap) transforms Int into List[Int]
     def pure[A](value: A): M[A]
-    //
     def flatMap[A, B](ma: M[A])(f: A => M[B]): M[B]
+    // Monad extends Functor because it's able to provide its fundamental method (map)
+    def map[A, B](ma: M[A])(f: A => B): M[B] = flatMap(ma)(a => pure(f(a)))
   }
 
   import cats.Monad
@@ -118,10 +119,19 @@ object Monads {
   def getPairsFuture(number: Future[Int], char: Future[Char]): Future[(Int, Char)] = number.flatMap(n => char.map(c => (n, c)))
 
   // generalize
-  def getPairs[M[_], A, B](ma: M[A], mb: M[B])(implicit monad: Monad[M]): M[(A, B)] = monad.flatMap(ma)(a => monad.map(mb)(b => (a, b)))
-  // cleaner
-  import cats.syntax.monad._
-  //def getPairs[M[_] : Monad, A, B](ma: M[A], mb: M[B]): M[(A, B)] = ma.flatMap(a => mb.map(b => (a, b)))
+  def getPairsX[M[_], A, B](ma: M[A], mb: M[B])(implicit monad: Monad[M]): M[(A, B)] = monad.flatMap(ma)(a => monad.map(mb)(b => (a, b)))
+
+  // extension methods (weirder imports - pure, flatMap)
+  import cats.syntax.applicative._ // the pure extension method is here (Applicative is a subtype of Monad)
+  val oneOption: Option[Int] = 1.pure[Option] // implicit Monad[Option] will be used => Some(1)
+  val oneList: List[Int] = 1.pure[List] // List(1)
+
+  import cats.syntax.flatMap._ // the flatMap extension method is here
+  val oneOptionTransformed: Option[Int] = oneOption.flatMap(x => (x + 1).pure[Option])
+
+  import cats.syntax.functor._
+
+  def getPairs[M[_] : Monad, A, B](ma: M[A], mb: M[B]): M[(A, B)] = ma.flatMap(a => mb.map(b => (a, b)))
 
 
   def main(args: Array[String]): Unit = {
@@ -135,7 +145,7 @@ object Monads {
     println(transformedList)
     println(transformedFuture)
     println(getPairs(numbersList, charsList))
-    getPairs(numberFuture, charFuture) foreach println
     println(getPairs(numberOption, charOption))
+    getPairs(numberFuture, charFuture) foreach println
   }
 }
