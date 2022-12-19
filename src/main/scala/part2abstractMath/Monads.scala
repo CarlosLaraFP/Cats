@@ -123,15 +123,31 @@ object Monads {
 
   // extension methods (weirder imports - pure, flatMap)
   import cats.syntax.applicative._ // the pure extension method is here (Applicative is a subtype of Monad)
+
   val oneOption: Option[Int] = 1.pure[Option] // implicit Monad[Option] will be used => Some(1)
   val oneList: List[Int] = 1.pure[List] // List(1)
 
   import cats.syntax.flatMap._ // the flatMap extension method is here
   val oneOptionTransformed: Option[Int] = oneOption.flatMap(x => (x + 1).pure[Option])
 
-  import cats.syntax.functor._
+  import cats.syntax.functor._ // the map extension method is here
 
   def getPairs[M[_] : Monad, A, B](ma: M[A], mb: M[B]): M[(A, B)] = ma.flatMap(a => mb.map(b => (a, b)))
+
+  // we have access to for-comprehensions due to flatMap and map extension methods
+  val composedOptionFor: Option[Int] = for {
+    one <- 1.pure[Option]
+    two <- 2.pure[Option]
+  } yield one + two
+
+  // Identical to getPairs above
+  def getPairsFor[M[_] : Monad, A, B](ma: M[A], mb: M[B]): M[(A, B)] = for {
+    a <- ma
+    b <- mb
+  } yield (a, b)
+  // Important note: For-comprehensions are not iteration - they are syntactic sugar for functional flatMap/map chains
+
+  // TODO: Use cases involve sequential / chained transformations of any container type
 
 
   def main(args: Array[String]): Unit = {
