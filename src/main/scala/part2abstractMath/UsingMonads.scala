@@ -112,7 +112,25 @@ object UsingMonads {
 
   import scala.concurrent.ExecutionContext.Implicits.global
 
+  object FutureService extends HttpService[Future] {
+    // returns subtype of Future[Connection]: Success(connection) or Failure(connection)
+    override def getConnection(config: Map[String, String]): Future[Connection] = Future {
+      val host = config.getOrElse("host", "missing")
+      val port = config.getOrElse("port", "missing")
+      if (host != "missing" && port != "missing") Connection(host, port)
+      else throw new Exception("Unable to establish connection.")
+    }
 
+    override def issueRequest(connection: Connection, payload: String): Future[String] = Future {
+      if (payload.length < 20) s"Request $payload has been accepted."
+      else "Payload length must be less than 20."
+    }
+  }
+
+  val futureRequest: Future[String] = for {
+    connection <- FutureService.getConnection(config)
+    request <- FutureService.issueRequest(connection, "Future HttpService")
+  } yield request
 
 
   def main(args: Array[String]): Unit = {
@@ -124,5 +142,6 @@ object UsingMonads {
     println(location)
     println(eitherRequest)
     println(optionRequest)
+    println(futureRequest)
   }
 }
