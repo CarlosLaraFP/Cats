@@ -54,8 +54,8 @@ object UsingMonads {
     location <- trackLocation(orderStatus)
   } yield location
 
-  // TODO: the service layer API of a web app (without changing the code below)
-  // TODO - provide a real implementation of HttpService using Try, Option, Future, Either
+  // service layer API of a web app (without changing the code below)
+  // provide a real implementation of HttpService using Try, Option, Future, Either
 
   case class Connection(host: String, port: String)
 
@@ -105,11 +105,14 @@ object UsingMonads {
     }
   }
 
+  import cats.instances.option._
+
   val optionRequest: Option[String] = for {
     connection <- OptionService.getConnection(config)
     response <- OptionService.issueRequest(connection, "Option HttpService")
   } yield response
 
+  import cats.instances.future._
   import scala.concurrent.ExecutionContext.Implicits.global
 
   object FutureService extends HttpService[Future] {
@@ -150,6 +153,15 @@ object UsingMonads {
     response <- AggressiveHttpService.issueRequest(connection, "Aggressive HttpService")
   } yield response
 
+  // general API (implicit Monad[M[_]] in scope)
+  def getResponse[M[_] : Monad](service: HttpService[M], payload: String): M[String] = {
+    // since we have the extension methods in scope, we can use the for comprehension (they do light up)
+    for {
+      connection <- service.getConnection(config)
+      response <- service.issueRequest(connection, payload)
+    } yield response
+  }
+
 
   def main(args: Array[String]): Unit = {
     //
@@ -162,5 +174,9 @@ object UsingMonads {
     println(optionRequest)
     println(futureRequest)
     println(aggressiveResponse)
+    println(getResponse(AggressiveHttpService, "Aggressive HttpService"))
+    println(getResponse(FutureService, "Future HttpService").onComplete(println)) // Monad[Future] instance in scope
+    println(getResponse(OptionService, "Option HttpService"))
+    println(getResponse(EitherService, "Either HttpService"))
   }
 }
