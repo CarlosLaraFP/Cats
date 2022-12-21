@@ -43,10 +43,40 @@ object CustomMonads {
     }
   }
 
+  sealed trait Tree[+A]
+  final case class Leaf[+A](value: A) extends Tree[A]
+  final case class Branch[+A](left: Tree[A], right: Tree[A]) extends Tree[A]
+
+  // TODO: define Monad for Tree (provide for-comprehension capability)
+
+  implicit object TreeMonad extends Monad[Tree] {
+    // common sense single-value wrapper for a Tree
+    override def pure[A](x: A): Tree[A] = Leaf(x)
+
+    // f acts on simple values, which means f must return a Leaf
+    override def flatMap[A, B](fa: Tree[A])(f: A => Tree[B]): Tree[B] = fa match {
+      case Leaf(x) => f(x)
+      case Branch(x, y) => Branch(flatMap(x)(f), flatMap(y)(f))
+    }
+
+    override def tailRecM[A, B](a: A)(f: A => Tree[Either[A, B]]): Tree[B] = {
+      //
+      def headRecursion(tree: Tree[Either[A, B]]): Tree[B] = tree match {
+        case Leaf(Left(x)) => headRecursion(f(x))
+        case Leaf(Right(x)) => Leaf(x)
+        case Branch(left, right) => Branch(headRecursion(left), headRecursion(right))
+      }
+      headRecursion(f(a))
+    }
+  }
+
 
   def main(args: Array[String]): Unit = {
     //
-    println(IdentityMonad.flatMap[Int, String](aNumber)(_.toString))
-    println(IdentityMonad.flatMap[Int, Int](aNumber)(_ + 1))
+    println(IdentityMonad.flatMap(aNumber)(_.toString))
+    println(IdentityMonad.flatMap(aNumber)(_ + 1))
+    println(TreeMonad.flatMap(Leaf(2))(v => Leaf(v + 1)))
+    println(TreeMonad.flatMap(Branch(Leaf(10), Leaf(20)))(v => Leaf(v * 10)))
+    println(TreeMonad.flatMap(Branch(Leaf(10), Leaf(20)))(v => Branch(Leaf(v + 1), Leaf(v + 2))))
   }
 }
