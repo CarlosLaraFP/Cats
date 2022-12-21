@@ -90,8 +90,8 @@ object UsingMonads {
   // implicit Monad type class instances in scope due to Scala standard library
   val eitherRequest: LoadingOr[String] = for {
     connection <- EitherService.getConnection(config)
-    request <- EitherService.issueRequest(connection, "Either HttpService")
-  } yield request
+    response <- EitherService.issueRequest(connection, "Either HttpService")
+  } yield response
 
   object OptionService extends HttpService[Option] {
     //
@@ -107,8 +107,8 @@ object UsingMonads {
 
   val optionRequest: Option[String] = for {
     connection <- OptionService.getConnection(config)
-    request <- OptionService.issueRequest(connection, "Option HttpService")
-  } yield request
+    response <- OptionService.issueRequest(connection, "Option HttpService")
+  } yield response
 
   import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -129,12 +129,30 @@ object UsingMonads {
 
   val futureRequest: Future[String] = for {
     connection <- FutureService.getConnection(config)
-    request <- FutureService.issueRequest(connection, "Future HttpService")
-  } yield request
+    response <- FutureService.issueRequest(connection, "Future HttpService")
+  } yield response
+
+  object AggressiveHttpService extends HttpService[ErrorOr] {
+    // return Left(Throwable) is config not found
+    override def getConnection(config: Map[String, String]): ErrorOr[Connection] = {
+      if (!config.contains("host") && !config.contains("port")) Left(new RuntimeException("Unable to establish connection."))
+      else Right(Connection(config("host"), config("port")))
+    }
+
+    override def issueRequest(connection: Connection, payload: String): ErrorOr[String] = {
+      if (payload.length < 20) Right(s"Request $payload has been accepted.")
+      else Left(new RuntimeException("Payload length must be less than 20."))
+    }
+  }
+
+  val aggressiveResponse: ErrorOr[String] = for {
+    connection <- AggressiveHttpService.getConnection(config)
+    response <- AggressiveHttpService.issueRequest(connection, "Aggressive HttpService")
+  } yield response
 
 
   def main(args: Array[String]): Unit = {
-
+    //
     println(simpleList)
     println(transformedList)
     println(changedLoading)
@@ -143,5 +161,6 @@ object UsingMonads {
     println(eitherRequest)
     println(optionRequest)
     println(futureRequest)
+    println(aggressiveResponse)
   }
 }
