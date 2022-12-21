@@ -154,13 +154,11 @@ object UsingMonads {
   } yield response
 
   // general API (implicit Monad[M[_]] in scope)
-  def getResponse[M[_] : Monad](service: HttpService[M], payload: String): M[String] = {
-    // since we have the extension methods in scope, we can use the for comprehension (they do light up)
-    for {
-      connection <- service.getConnection(config)
-      response <- service.issueRequest(connection, payload)
-    } yield response
-  }
+  // since we have the extension methods in scope, we can use the for comprehension (they do light up now)
+  def getResponse[M[_] : Monad](service: HttpService[M], payload: String): M[String] = for {
+    connection <- service.getConnection(config)
+    response <- service.issueRequest(connection, payload)
+  } yield response
 
 
   def main(args: Array[String]): Unit = {
