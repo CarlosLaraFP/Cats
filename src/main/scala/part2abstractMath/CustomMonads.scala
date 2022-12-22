@@ -47,7 +47,7 @@ object CustomMonads {
   final case class Leaf[+A](value: A) extends Tree[A]
   final case class Branch[+A](left: Tree[A], right: Tree[A]) extends Tree[A]
 
-  // TODO: define Monad for Tree (provide for-comprehension capability)
+  // define Monad for Tree (provide for-comprehension capability)
 
   implicit object TreeMonad extends Monad[Tree] {
     // common sense single-value wrapper for a Tree
@@ -61,12 +61,33 @@ object CustomMonads {
 
     override def tailRecM[A, B](a: A)(f: A => Tree[Either[A, B]]): Tree[B] = {
       //
+      /*
       def headRecursion(tree: Tree[Either[A, B]]): Tree[B] = tree match {
         case Leaf(Left(x)) => headRecursion(f(x))
         case Leaf(Right(x)) => Leaf(x)
         case Branch(left, right) => Branch(headRecursion(left), headRecursion(right))
       }
-      headRecursion(f(a))
+       */
+
+      @scala.annotation.tailrec
+      def tailRec(todo: List[Tree[Either[A, B]]], expanded: List[Tree[Either[A, B]]], done: List[Tree[B]]): Tree[B] = {
+        if (todo.isEmpty) done.head
+        else todo.head match {
+          case Leaf(Left(x)) => tailRec(f(x) :: todo.tail, expanded, done)
+          case Leaf(Right(x)) => tailRec(todo.tail, expanded, Leaf(x) :: done)
+          case node @ Branch(left, right) =>
+            if (!expanded.contains(node)) tailRec(right :: left :: todo, node :: expanded, done)
+            else {
+              val newLeft = done.head
+              val newRight = done.tail.head
+              val newBranch = Branch(newLeft, newRight)
+              tailRec(todo.tail, expanded, newBranch :: done.drop(2))
+            }
+        }
+      }
+
+      //headRecursion(f(a))
+      tailRec(List(f(a)), Nil, Nil)
     }
   }
 
