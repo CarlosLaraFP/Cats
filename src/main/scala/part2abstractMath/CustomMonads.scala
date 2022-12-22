@@ -20,7 +20,7 @@ object CustomMonads {
     }
   }
 
-  // TODO: define Monad for the identity type
+  // define Monad for the identity type
   type Identity[T] = T
   val aNumber: Identity[Int] = 42
 
@@ -48,12 +48,12 @@ object CustomMonads {
   final case class Branch[+A](left: Tree[A], right: Tree[A]) extends Tree[A]
 
   // define Monad for Tree (provide for-comprehension capability)
+  // Monad also guarantees iteration methods are all tail recursive if tailRecM
 
   implicit object TreeMonad extends Monad[Tree] {
     // common sense single-value wrapper for a Tree
     override def pure[A](x: A): Tree[A] = Leaf(x)
 
-    // f acts on simple values, which means f must return a Leaf
     override def flatMap[A, B](fa: Tree[A])(f: A => Tree[B]): Tree[B] = fa match {
       case Leaf(x) => f(x)
       case Branch(x, y) => Branch(flatMap(x)(f), flatMap(y)(f))
@@ -67,7 +67,8 @@ object CustomMonads {
         case Leaf(Right(x)) => Leaf(x)
         case Branch(left, right) => Branch(headRecursion(left), headRecursion(right))
       }
-       */
+      headRecursion(f(a))
+      */
 
       @scala.annotation.tailrec
       def tailRec(todo: List[Tree[Either[A, B]]], expanded: List[Tree[Either[A, B]]], done: List[Tree[B]]): Tree[B] = {
@@ -77,16 +78,9 @@ object CustomMonads {
           case Leaf(Right(x)) => tailRec(todo.tail, expanded, Leaf(x) :: done)
           case node @ Branch(left, right) =>
             if (!expanded.contains(node)) tailRec(right :: left :: todo, node :: expanded, done)
-            else {
-              val newLeft = done.head
-              val newRight = done.tail.head
-              val newBranch = Branch(newLeft, newRight)
-              tailRec(todo.tail, expanded, newBranch :: done.drop(2))
-            }
+            else tailRec(todo.tail, expanded, Branch(done.head, done.tail.head) :: done.drop(2))
         }
       }
-
-      //headRecursion(f(a))
       tailRec(List(f(a)), Nil, Nil)
     }
   }
@@ -99,5 +93,6 @@ object CustomMonads {
     println(TreeMonad.flatMap(Leaf(2))(v => Leaf(v + 1)))
     println(TreeMonad.flatMap(Branch(Leaf(10), Leaf(20)))(v => Leaf(v * 10)))
     println(TreeMonad.flatMap(Branch(Leaf(10), Leaf(20)))(v => Branch(Leaf(v + 1), Leaf(v + 2))))
+    println(TreeMonad.iterateUntilM(1)(x => Leaf(x + 1))(_ == 10))
   }
 }
