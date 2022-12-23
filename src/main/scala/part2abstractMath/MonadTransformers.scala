@@ -12,21 +12,32 @@ object MonadTransformers {
 
   // allows combining Options without unwrapping/wrapping all over the place
   import cats.data.OptionT
-  import cats.instances.list._ // fetch an implicit OptionT[Monad[List]]
+  import cats.instances.list._
+  import cats.data.EitherT
   import cats.instances.future._
   // Wow, somehow the implicit global ExecutionContext does not work
   implicit val ec: ExecutionContext = ExecutionContext.fromExecutorService(Executors.newFixedThreadPool(8))
+
+  /*
+    val intsRegular: List[Option[Int]]= List(Option(1), Option(2))
+    val charsRegular: List[Option[Char]]= List(Option('a'), Option('b'), Option.empty[Char])
+
+    val tuplesRegular: List[(Int, Char)] = for {
+      c <- charsRegular
+      i <- intsRegular
+    } yield (i.get, c.get) // throws runtime exception in the case of None
+  */
 
   // List[Option[Int]]
   val listIntOptions: OptionT[List, Int] = OptionT(List(Option(1), Option(2)))
   val listCharOptions: OptionT[List, Char] = OptionT(List(Option('a'), Option('b'), Option.empty[Char]))
   // OptionT has map and flatMap methods
+  // Using OptionT (monad transformer for Option) allows for-comprehensions to access inner values
+  // without needing to wrap/unwrap and preventing runtime exceptions
   val listTuples: OptionT[List, (Int, Char)] = for {
     c <- listCharOptions
     i <- listIntOptions
   } yield (i, c)
-
-  import cats.data.EitherT
 
   val vectorEither: EitherT[Vector, String, Int] = EitherT(Vector(Left("error"), Right(43), Right(11)))
   val futureEither: EitherT[Future, String, Int] = EitherT.right(Future(43)) // wrap over Future(Right(45))
@@ -64,6 +75,7 @@ object MonadTransformers {
     //
     println(sumAllOptions(List(Option(10), Option.empty[Int], Option(20))))
     println(listTuples.value)
+    //println(tuplesRegular)
 
     val resultFuture = generateTrafficSpikeReport("server1.valinor.com", "server2.valinor.com").value
     resultFuture foreach println
