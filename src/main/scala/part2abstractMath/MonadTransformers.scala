@@ -33,7 +33,7 @@ object MonadTransformers {
   val listCharOptions: OptionT[List, Char] = OptionT(List(Option('a'), Option('b'), Option.empty[Char]))
   // OptionT has map and flatMap methods
   // Using OptionT (monad transformer for Option) allows for-comprehensions to access inner values
-  // without needing to wrap/unwrap and preventing runtime exceptions
+  // without needing to wrap/unwrap (due to flatMap/map) and preventing runtime exceptions
   val listTuples: OptionT[List, (Int, Char)] = for {
     c <- listCharOptions
     i <- listIntOptions
@@ -53,10 +53,11 @@ object MonadTransformers {
 
   def getBandwidth(server: String): AsyncResponse[Int] = bandwidths.get(server) match {
     case None => EitherT.left(Future(s"Server $server unreachable.")) // wrap over Future(Left("..."))
-    case Some(b) => EitherT.right(Future(b)) // // wrap over Future(Right(some int))
+    case Some(x) => EitherT.right(Future(x)) // // wrap over Future(Right(some int))
   }
 
   // Future[Either[String, Boolean]]
+  // if either getBandwidth returns Left of String, the method returns it instead of yielding Right of Boolean
   def canWithstandSurge(server1: String, server2: String): AsyncResponse[Boolean] = for {
     response1 <- getBandwidth(server1)
     response2 <- getBandwidth(server2)
