@@ -12,11 +12,11 @@ object Readers {
     - a business logic layer
   */
 
-  case class Configuration(dbUsername: String, dbPassword: String, host: String, port: Int, nThreads: Int)
+  case class Configuration(dbUsername: String, dbPassword: String, host: String, port: Int, nThreads: Int, emailReplyTo: String)
 
   case class DbConnection(username: String, password: String) {
     // In practice: SELECT * FROM Table and return the status of the orderID (Query in reactive architecture)
-    def getOrderStatus(orderId: Long): String = s"Dispatched $orderId"
+    def getOrderStatus(orderId: Long): String = s"Palantir $orderId"
     // In practice: SELECT MAX(orderId) FROM Table WHERE username = username
     def getLastOrderId(username: String): Long = 5237623
   }
@@ -28,7 +28,7 @@ object Readers {
 
   // bootstrap phase when we spin up the application
   // create an initial data structure from which everything else can be derived
-  val config: Configuration = Configuration("Carlos", "Valinor", "localhost", 1234, 8)
+  val config: Configuration = Configuration("Carlos", "Valinor", "localhost", 1234, 8, "clara@valinor.ai")
 
   // Reader is a data processing type that will implement the pattern: Configuration => Initialize System
   import cats.data.Reader
@@ -68,7 +68,25 @@ object Readers {
     4. When we need the final piece of information, call run on the Reader with the initial data structure
   */
 
+  // TODO
+  case class EmailService(emailReplyTo: String) {
+    //
+    def sendEmail(address: String, contents: String) = s"From $emailReplyTo to $address >>> $contents"
+  }
 
+  val emailReader: MicroserviceReader[EmailService] = Reader(conf => EmailService(conf.emailReplyTo))
+
+  def emailUser(username: String, userEmail: String): String = {
+    // fetch the status of the last order and email with the email service
+    // "Your last order has the status: (status)"
+    val emailResponse: MicroserviceReader[String] = for {
+      orderId <- dbReader.map(_.getLastOrderId(username))
+      orderStatus <- dbReader.map(_.getOrderStatus(orderId))
+      email <- emailReader.map(_.sendEmail(userEmail, s"$username's last order: $orderStatus"))
+    } yield email
+
+    emailResponse.run(config)
+  }
 
 
   def main(args: Array[String]): Unit = {
@@ -77,5 +95,6 @@ object Readers {
     println(orderStatus)
     println(getLastOrderStatus("Carlos"))
     println(getLastOrderStatusFor("Carlos"))
+    println(emailUser("Elendil", "elendil@numenor.ai"))
   }
 }
