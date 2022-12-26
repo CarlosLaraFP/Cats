@@ -3,7 +3,9 @@ package part3datamanipulation
 import cats.Id
 import cats.data.WriterT
 
+import java.util.concurrent.Executors
 import scala.annotation.tailrec
+import scala.concurrent.{ExecutionContext, Future}
 
 object Writers {
 
@@ -70,8 +72,10 @@ object Writers {
     writerHelper(Writer(Vector.empty[String], 1))
   }
 
-  // TODO: Re-write using Writers
   def naiveSum(n: Int): Int = {
+    /*
+      Inconsistent results when using multiple threads due to side-effects.
+    */
     if (n <= 0) 0
     else {
       println(s"Now at $n")
@@ -82,6 +86,9 @@ object Writers {
   }
 
   def writerSum(n: Int): Writer[Vector[Int], Int] = {
+    /*
+      Writers can keep logs separate on multiple threads.
+    */
     @tailrec
     def sumHelper(i: Int, writer: Writer[Vector[Int], Int]): Writer[Vector[Int], Int] = {
       if (i == 0) writer
@@ -93,6 +100,8 @@ object Writers {
   }
 
 
+  implicit val ec: ExecutionContext = ExecutionContext.fromExecutorService(Executors.newFixedThreadPool(8))
+
   def main(args: Array[String]): Unit = {
     //
     println(bothWriterTwo)
@@ -103,9 +112,15 @@ object Writers {
     println(compositeWriter.run) // returns tuple
     println(emptyWriter.run)
     //countAndSay(10)
-    val recursiveWriter = countAndLog(10)
-    println(recursiveWriter.run)
-    //println(naiveSum(3))
+    println(countAndLog(10).run)
+    //Future(naiveSum(30)) foreach println
+    //Future(naiveSum(30)) foreach println
     println(writerSum(3))
+    val futureA = Future(writerSum(10))
+    val futureB = Future(writerSum(10))
+    val logsA = futureA.map(_.written) // logs from thread A
+    val logsB = futureB.map(_.written) // logs from thread B
+    logsA foreach println
+    logsB foreach println
   }
 }
