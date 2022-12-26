@@ -70,6 +70,28 @@ object Writers {
     writerHelper(Writer(Vector.empty[String], 1))
   }
 
+  // TODO: Re-write using Writers
+  def naiveSum(n: Int): Int = {
+    if (n <= 0) 0
+    else {
+      println(s"Now at $n")
+      val lowerSum = naiveSum(n - 1)
+      println(s"Computed sum(${n - 1}) = $lowerSum")
+      lowerSum + n
+    }
+  }
+
+  def writerSum(n: Int): Writer[Vector[Int], Int] = {
+    @tailrec
+    def sumHelper(i: Int, writer: Writer[Vector[Int], Int]): Writer[Vector[Int], Int] = {
+      if (i == 0) writer
+      else sumHelper(i - 1, writer.mapBoth { (logs, value) =>
+        (logs appended value, value + i - 1)
+      })
+    }
+    sumHelper(n, Writer(Vector.empty[Int], n))
+  }
+
 
   def main(args: Array[String]): Unit = {
     //
@@ -80,8 +102,10 @@ object Writers {
     println(l)
     println(compositeWriter.run) // returns tuple
     println(emptyWriter.run)
-    countAndSay(10)
+    //countAndSay(10)
     val recursiveWriter = countAndLog(10)
     println(recursiveWriter.run)
+    //println(naiveSum(3))
+    println(writerSum(3))
   }
 }
