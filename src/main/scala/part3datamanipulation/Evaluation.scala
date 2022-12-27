@@ -1,5 +1,7 @@
 package part3datamanipulation
 
+import scala.annotation.tailrec
+
 object Evaluation {
 
   /*
@@ -42,16 +44,51 @@ object Evaluation {
     d <- redoEval
   } yield a + b + c + d
 
+  val doNotRecompute: Eval[Int] = redoEval.memoize
+
+  val tutorial: Eval[String] = Eval
+    .always { println("Step 1"); "Draw sword" }
+    .map { step1 => println("Step 2"); s"$step1 then raise it" }
+    .memoize // remember value up to this point
+    .map { steps12 => println("Step 3"); s"$steps12 then draw energy"}
+
+  // Implement defer such that defer(Eval.now) does not run the side effects
+  def defer[T](eval: => Eval[T]): Eval[T] = Eval.later(()).flatMap(_ => eval)
+    //Eval later { eval.value }
+  // passing eval by name (By-name parameters are evaluated every time they are used. They won’t be evaluated at all if they are unused.)
+
+  def reverseList[T](list: List[T]): List[T] = {
+    if (list.isEmpty) list
+    else reverseList(list.tail) :+ list.head
+  }
+
+  def reverseEvalBasic[T](list: List[T]): Eval[List[T]] = Eval later {
+    //
+    @tailrec
+    def reverseHelper(current: List[T], result: List[T]): List[T] = current.headOption match {
+      case None => result
+      case Some(x) => reverseHelper(current.tail, x :: result)
+    }
+    reverseHelper(list, Nil)
+  }
+
+  //@tailrec
+  def reverseEval[T](list: List[T]): Eval[List[T]] = {
+    // Even though this looks head recursive, Eval will evaluate it tail recursively!
+    if (list.isEmpty) Eval.now(list)
+    else Eval.defer(reverseEval(list.tail).map(_ :+ list.head))
+  }
+  // Amazing. We can write stack recursive methods, wrap them in Eval.defer, and produce a tail recursive implementation.
+
 
   def main(args: Array[String]): Unit = {
     //
-    //println(instantEval.value)
-    //println(redoEval.value)
-    //println(delayedEval.value)
-    //println(delayedEval.value)
-    //println(composedEval.value)
-    //println(composedEval.value)
-    println(evalExample.value) // 8
-    println(evalExample.value) // 8 with only computing always prints
+    println(defer(Eval.now {
+      println("Now") // this should not get printed
+      42
+    }).value)
+
+    val list = List(1, 2, 3)
+    println(reverseEval(list).value)
   }
 }
