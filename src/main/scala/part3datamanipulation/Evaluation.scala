@@ -57,11 +57,6 @@ object Evaluation {
     //Eval later { eval.value }
   // passing eval by name (By-name parameters are evaluated every time they are used. They won’t be evaluated at all if they are unused.)
 
-  def reverseList[T](list: List[T]): List[T] = {
-    if (list.isEmpty) list
-    else reverseList(list.tail) :+ list.head
-  }
-
   def reverseEvalBasic[T](list: List[T]): Eval[List[T]] = Eval later {
     //
     @tailrec
@@ -72,9 +67,15 @@ object Evaluation {
     reverseHelper(list, Nil)
   }
 
+  def reverseList[T](list: List[T]): List[T] = {
+    if (list.isEmpty) Nil
+    else reverseList(list.tail) :+ list.head
+  }
+
   //@tailrec
   def reverseEval[T](list: List[T]): Eval[List[T]] = {
     // Even though this looks head recursive, Eval will evaluate it tail recursively!
+    // Because defer does not evaluate an expression eagerly, it can be safely delayed until on the way back.
     if (list.isEmpty) Eval.now(list)
     else Eval.defer(reverseEval(list.tail).map(_ :+ list.head))
   }
@@ -88,7 +89,7 @@ object Evaluation {
       42
     }).value)
 
-    val list = List(1, 2, 3)
-    println(reverseEval(list).value)
+    val list = (1 to 10000).toList
+    println(reverseEval(list).value.size)
   }
 }
