@@ -56,16 +56,45 @@ object FunctionalState {
   val (a1, (s, a2)) = compositeFunc(10)
   // State's conveniently keeps the state value at the top of the hierarchy without nesting
 
-  // TODO: online store
   case class ShoppingCart(items: List[String], total: Double)
 
   def addToCart(item: String, price: Double): State[ShoppingCart, Double] = State {
     /*
       Transition/transformation between an old ShoppingCart to another ShoppingCart and the total amount at that point.
     */
-    (state: ShoppingCart) => (ShoppingCart(item :: state.items, price + state.total), price + state.total)
+    (cart: ShoppingCart) => (ShoppingCart(item :: cart.items, price + cart.total), price + cart.total)
   }
 
+  val testCart: State[ShoppingCart, Double] = for {
+    _ <- addToCart("Sword", 10.50)
+    _ <- addToCart("Shield", 11.50)
+    total <- addToCart("Arrow", 12.50)
+  } yield total
+
+  def inspect[A, B](f: A => B): State[A, B] = State { (s: A) => (s, f(s)) }
+
+  def get[A]: State[A, A] = State { (s: A) => (s, s) }
+
+  def set[A](value: A): State[A, Unit] = State { (_: A) => (value, ()) }
+
+  def modify[A](f: A => A): State[A, Unit] = State { (s: A) => (f(s), ()) }
+
+  // Daniel: You have a great ability to think in abstract generic terms
+
+  // all methods above already available
+  import cats.data.State._
+
+  // this is a state transition between an int and a final result
+  // within a for-comprehension, .run is called in every method to extract the State value at each step
+  // the methods that return Unit are labeled with underscore
+  // purely functional using immutability (program.run(initial) runs each line in sequence passing the previous)
+  val program: State[Int, (Int, Int, Int)] = for {
+    a <- get[Int]
+    _ <- set[Int](a + 10)
+    b <- get[Int]
+    _ <- modify[Int](_ + 43)
+    c <- inspect[Int, Int](_ * 2)
+  } yield (a, b, c)
 
 
   def main(args: Array[String]): Unit = {
@@ -74,7 +103,13 @@ object FunctionalState {
     println(compositeTransformationFor.run(10).value)
     println(compositeFunc(10))
     val initialCart = ShoppingCart(List("Shirt"), 10.50)
-    val state = addToCart("Pants", 19.50)
+    val state = this.addToCart("Pants", 19.50)
     println(state.run(initialCart).value)
+    println(testCart.run(ShoppingCart(Nil, 0.0)).value)
+    println(this.inspect[Int, String]((i: Int) => s"The number is $i").run(100).value)
+    println(this.get[Int].run(100).value)
+    println(this.set[Int](50).run(100).value)
+    println(this.modify[String]((_: String) => "Scala").run("C++").value)
+    println(program.run(0).value)
   }
 }
