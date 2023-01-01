@@ -1,5 +1,6 @@
 package part3datamanipulation
 
+
 object DataValidation {
 
   /*
@@ -35,9 +36,26 @@ object DataValidation {
     if (errors.nonEmpty) Left(errors.toList) else Right(n)
   }
 
+  //import cats.instances.list._
+  import cats.Semigroup
+
+  implicit val combineIntMax: Semigroup[Int] = Semigroup.instance[Int](scala.math.max)
+  implicit val combineLinkedList: Semigroup[List[String]] = Semigroup.instance[List[String]](_ ::: _)
+
+  def validateNumber(n: Int): Validated[List[String], Int] = {
+    // combine belongs to Semigroup (we need combine for both List[String] and Int)
+    Validated
+      .cond(n % 2 == 0, n, List("n must be even"))
+      .combine(Validated.cond(n > 0, n, List("n must be non-negative")))
+      .combine(Validated.cond(n < 100, n, List("n must be <= to 100")))
+      .combine(Validated.cond(!(2 until n-1).exists(n % _ == 0), n, List("n must be prime")))
+  }
+
 
   def main(args: Array[String]): Unit = {
     //
-    println(testNumber(7))
+    println(testNumber(6))
+    println(validateNumber(-7))
+    println(validateNumber(2))
   }
 }
