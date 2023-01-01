@@ -88,6 +88,7 @@ object FunctionalState {
   // within a for-comprehension, .run is called in every method to extract the State value at each step
   // the methods that return Unit are labeled with underscore
   // purely functional using immutability (program.run(initial) runs each line in sequence passing the previous)
+  // imperative program reduced to pure functional programming (no vars, loops)
   val program: State[Int, (Int, Int, Int)] = for {
     a <- get[Int]
     _ <- set[Int](a + 10)
