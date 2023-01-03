@@ -74,7 +74,7 @@ object DataValidation {
 
   object FormValidation {
     //implicit val combineLinkedList: Semigroup[List[String]] = Semigroup.instance[List[String]](_ ::: _)
-    implicit val combineStringForm: Semigroup[String] = Semigroup.instance[String]((s1, _) => s1)
+    implicit val combineStringForm: Semigroup[String] = Semigroup.instance[String]((_, _) => "Success!")
 
     type FormValidation[T] = Validated[List[String], T]
 
@@ -98,9 +98,7 @@ object DataValidation {
         .fromOption(form.get("password"), List("Password must be specified."))
         .ensure(List("Password must have at least 10 characters."))(_.length >= 10)
 
-      val result: Validated[List[String], String] = name.combine(email).combine(password)
-
-      if (result.isValid) Valid("Success!") else result
+      name.combine(email).combine(password)
     }
   }
 
