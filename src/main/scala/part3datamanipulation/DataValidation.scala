@@ -1,5 +1,9 @@
 package part3datamanipulation
 
+import cats.data.Validated.Valid
+
+import scala.util.Try
+
 
 object DataValidation {
 
@@ -51,11 +55,69 @@ object DataValidation {
       .combine(Validated.cond(!(2 until n-1).exists(n % _ == 0), n, List("n must be prime")))
   }
 
+  // Validated instances can be chained
+  // if the original value is invalid, the chain stops and the errors do not accumulate
+  validValue.andThen(_ => invalidValue)
+  // test a valid value (turns a valid value into an invalid value based on a predicate)
+  validValue.ensure(List("Something went wrong."))(_ % 2 == 0)
+  // transform
+  validValue.map(_ + 1) // value type
+  validValue.leftMap(_.length) // error type
+  validValue.bimap(_.length, _ + 1) // both
+  // interoperate with Scala data structures
+  val eitherToValidated: Validated[List[String], Int] = Validated.fromEither(Right(42))
+  val optionToValidated: Validated[List[String], Int] = Validated.fromOption(None, List("Nothing present here."))
+  val tryToValidated: Validated[Throwable, Int] = Validated.fromTry(Try("something".toInt))
+  //
+  validValue.toOption
+  validValue.toEither
+
+  object FormValidation {
+    //implicit val combineLinkedList: Semigroup[List[String]] = Semigroup.instance[List[String]](_ ::: _)
+    implicit val combineStringForm: Semigroup[String] = Semigroup.instance[String]((s1, _) => s1)
+
+    type FormValidation[T] = Validated[List[String], T]
+
+    def validateForm(form: Map[String, String]): FormValidation[String] = {
+      /*
+        Fields: name, email, password
+        Rules: All must be specified (any blank => error), email must have @, password must have >= 10 characters
+
+        If the form was successful, return a Valid with "Success". Otherwise, display all errors.
+      */
+      // each returns a Valid or Invalid instance (Validated subtype)
+      val name: Validated[List[String], String] = Validated
+        .fromOption(form.get("name"), List("Name must be specified."))
+        .ensure(List("Name must not be blank."))(_.nonEmpty)
+
+      val email: Validated[List[String], String] = Validated
+        .fromOption(form.get("email"), List("Email must be specified."))
+        .ensure(List("Email must be valid."))(_.contains('@'))
+
+      val password: Validated[List[String], String] = Validated
+        .fromOption(form.get("password"), List("Password must be specified."))
+        .ensure(List("Password must have at least 10 characters."))(_.length >= 10)
+
+      val result: Validated[List[String], String] = name.combine(email).combine(password)
+
+      if (result.isValid) Valid("Success!") else result
+    }
+  }
+
 
   def main(args: Array[String]): Unit = {
     //
     println(testNumber(6))
     println(validateNumber(-7))
     println(validateNumber(2))
+
+    val result = FormValidation.validateForm(
+      Map(
+        "name" -> "Charles",
+        "email" -> "info@carloslaraai.com",
+        "password" -> "avalidpassword"
+      )
+    )
+    println(result)
   }
 }
