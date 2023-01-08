@@ -56,7 +56,7 @@ object DataValidation {
   }
 
   // Validated instances can be chained
-  // if the original value is invalid, the chain stops and the errors do not accumulate
+  // if the original value is invalid, the chain continues and the errors accumulate
   validValue.andThen(_ => invalidValue)
   // test a valid value (turns a valid value into an invalid value based on a predicate)
   validValue.ensure(List("Something went wrong."))(_ % 2 == 0)
@@ -64,42 +64,47 @@ object DataValidation {
   validValue.map(_ + 1) // value type
   validValue.leftMap(_.length) // error type
   validValue.bimap(_.length, _ + 1) // both
-  // interoperate with Scala data structures
+  // interoperate with Scala data structures (standard library)
   val eitherToValidated: Validated[List[String], Int] = Validated.fromEither(Right(42))
   val optionToValidated: Validated[List[String], Int] = Validated.fromOption(None, List("Nothing present here."))
   val tryToValidated: Validated[Throwable, Int] = Validated.fromTry(Try("something".toInt))
-  //
+  // backwards
   validValue.toOption
   validValue.toEither
 
   object FormValidation {
     //implicit val combineLinkedList: Semigroup[List[String]] = Semigroup.instance[List[String]](_ ::: _)
-    implicit val combineStringForm: Semigroup[String] = Semigroup.instance[String]((_, _) => "Success!")
+    //implicit val combineStringForm: Semigroup[String] = Semigroup.instance[String]((_, _) => "Success!")
+    import cats.instances.string._ // default concatenation is fine
 
     type FormValidation[T] = Validated[List[String], T]
 
-    def validateForm(form: Map[String, String]): FormValidation[String] = {
+    def getValue(form: Map[String, String], fieldName: String): FormValidation[String] =
+      Validated.fromOption(form.get(fieldName), List(s"$fieldName must be specified."))
+
+    def nonBlank(value: String, fieldName: String): FormValidation[String] =
+      Validated.cond(value.nonEmpty, value, List(s"$fieldName must not be blank."))
+
+    def validEmail(email: String): FormValidation[String] =
+      Validated.cond(email.contains('@'), email, List("Email must be valid."))
+
+    def validPassword(password: String): FormValidation[String] =
+      Validated.cond(password.length >= 10, password, List("Password must have at least 10 characters."))
+
+    def validateForm(form: Map[String, String]): FormValidation[String] =
       /*
         Fields: name, email, password
         Rules: All must be specified (any blank => error), email must have @, password must have >= 10 characters
 
         If the form was successful, return a Valid with "Success". Otherwise, display all errors.
       */
-      // each returns a Valid or Invalid instance (Validated subtype)
-      val name: Validated[List[String], String] = Validated
-        .fromOption(form.get("name"), List("Name must be specified."))
-        .ensure(List("Name must not be blank."))(_.nonEmpty)
-
-      val email: Validated[List[String], String] = Validated
-        .fromOption(form.get("email"), List("Email must be specified."))
-        .ensure(List("Email must be valid."))(_.contains('@'))
-
-      val password: Validated[List[String], String] = Validated
-        .fromOption(form.get("password"), List("Password must be specified."))
-        .ensure(List("Password must have at least 10 characters."))(_.length >= 10)
-
-      name.combine(email).combine(password)
-    }
+      getValue(form, "Name")
+        .andThen(name => nonBlank(name, "Name"))
+        .combine(getValue(form, "Email")
+          .andThen(validEmail))
+        .combine(getValue(form, "Password")
+          .andThen(validPassword))
+        .map(_ => "User registration successful!")
   }
 
 
@@ -111,9 +116,9 @@ object DataValidation {
 
     val result = FormValidation.validateForm(
       Map(
-        "name" -> "Charles",
-        "email" -> "info@carloslaraai.com",
-        "password" -> "avalidpassword"
+        "Name" -> "Charles",
+        "Email" -> "info@carloslaraai.com",
+        "Password" -> "ValidPassword"
       )
     )
     println(result)
