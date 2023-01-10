@@ -107,6 +107,12 @@ object DataValidation {
         .map(_ => "User registration successful!")
   }
 
+  // Validated has useful extension methods for a nicer API
+  import cats.syntax.validated._
+
+  val validMeaningOfLife: Validated[List[String], Int] = 42.valid
+  val anError: Validated[String, Int] = "Something went wrong".invalid
+
 
   def main(args: Array[String]): Unit = {
     //

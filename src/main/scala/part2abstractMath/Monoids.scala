@@ -30,6 +30,10 @@ object Monoids {
   val emptyOption: Option[Int] = Monoid[Option[Int]].empty // None, per intuition
   val combinedOptions: Option[Int] = Monoid[Option[Int]].combine(Option(3), Option.empty[Int])
 
+  //val options: Option[Int] = Option.empty[Int] |+| Option(3)
+  val options: List[Option[Int]] = List(Option(3), Option.empty[Int], Option(7))
+  println(options.reduce((a, b) => Option(a.getOrElse(0) + b.getOrElse(0))))
+
   // a benefit of this approach is abstracting the seed value parameter
   def monoidFold[T](seq: Seq[T])(implicit monoid: Monoid[T]): T = seq.foldLeft(monoid.empty)(_ |+| _)
 
