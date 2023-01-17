@@ -32,13 +32,17 @@ object Applicatives {
   // constructs implicit where the pure method behaves as line 28 and map as usual
   val validatedApplicative: Applicative[ErrorsOr] = Applicative[ErrorsOr] // constructs implicit
 
-  // TODO: Implement Semigroupal's product method in terms of the Applicative's pure and map methods
-  def ap[F[_], A, B](ff: F[A => B])(fa: F[A]): F[B] = ??? // assume it's already implemented
+  // Implement Semigroupal's product method in terms of the Applicative's pure and map methods
+  //def ap[F[_], A, B](ff: F[A => B])(fa: F[A]): F[B] = ??? // assume it's already implemented (in fact, within Applicative itself)
   def productWithApplicatives[F[_], A, B](fa: F[A], fb: F[B])(implicit applicative: Applicative[F]): F[(A, B)] = {
-    // assume ap's ff takes A => (A, B) and returns F[(A, B)]
+    // assume ap's ff takes B => (A, B), returns F[(A, B)]
     val functionWrapper: F[B => (A, B)] = applicative.map(fa)(a => (b: B) => (a, b))
-    ap(functionWrapper)(fb)
+    applicative.ap(functionWrapper)(fb)
   }
+
+  // Applicatives have this def ap[F[_], A, B](ff: F[A => B])(fa: F[A]): F[B]
+  // Applicatives can implement product from Semigroupal
+  // Therefore, Applicative extends Semigroupal
 
 
   def main(args: Array[String]): Unit = {
