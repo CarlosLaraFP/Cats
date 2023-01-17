@@ -5,6 +5,17 @@ import scala.concurrent.{ExecutionContext, Future}
 
 object Semigroupals {
 
+  /*
+    Semigroupal is a higher-kinded type class that can tuple elements
+    (product method) without needing to wrap/unwrap.
+
+    Monads extend Semigroupals because product is implemented in terms of flatMap/map
+
+    Some Semigroupals are useful without being Monads (i.e. Validated)
+
+    Semigroupal tuples and Semigroup combines (they are distinct).
+  */
+
   trait MySemigroupal[F[_]] {
     // tuples the values inside a generic container and returns the tuple inside the same container type
     def product[A, B](fa: F[A], fb: F[B]): F[(A, B)] = ???
