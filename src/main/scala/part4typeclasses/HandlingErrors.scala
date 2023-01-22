@@ -6,7 +6,6 @@ import java.util.concurrent.Executors
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
 
-
 object HandlingErrors {
 
   // JVM exception type (Throwable), or any other type that represents an error
@@ -17,7 +16,7 @@ object HandlingErrors {
     def handleError[A](ma: M[A])(f: E => A): M[A] = handleErrorWith(ma)(e => pure(f(e)))
   }
 
-  trait MyMonadError[M[_], E] extends Monad[M] {
+  trait MyMonadError[M[_], E] extends MyApplicativeError[M, E] with Monad[M] {
     def ensure[A](ma: M[A])(error: E)(predicate: A => Boolean): M[A]
   }
 
