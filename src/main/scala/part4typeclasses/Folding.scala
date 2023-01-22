@@ -1,7 +1,6 @@
 package part4typeclasses
 
 import cats.Monoid
-import cats.syntax._
 import cats.instances.int._ // Monoid[Int]
 
 object Folding {
@@ -45,6 +44,11 @@ object Folding {
   import cats.instances.vector._
   val listVector: Int = (Foldable[List] compose Foldable[Vector]).combineAll(intNested)
 
+  // extension methods
+  import cats.syntax.foldable._
+  val lastSum: Int = List(1, 2, 3).combineAll // requires Foldable[List] and Monoid[Int]
+  val concatMapped: String = List(1, 2, 3).foldMap(_.toString)
+
 
   def main(args: Array[String]): Unit = {
     //
@@ -57,5 +61,7 @@ object Folding {
     println(optionInt)
     println(sum.value)
     println(listVector)
+    println(lastSum)
+    println(concatMapped)
   }
 }
